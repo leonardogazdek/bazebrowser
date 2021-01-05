@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="static/css/base.css"/>
+    <link rel="stylesheet" href="static/lib/astiloader/astiloader.css">
+    <link rel="stylesheet" href="static/lib/astimodaler/astimodaler.css">
+    <link rel="stylesheet" href="static/lib/astinotifier/astinotifier.css">
+    <link rel="stylesheet" href="static/lib/font-awesome-4.7.0/css/font-awesome.min.css">
+    <style>
+        #url {
+            border:1px solid #ccc;
+            background: #333;
+            color:#ccc;
+            padding:5px;
+            width:100%;
+            display:block;
+        }
+        #users { 
+            overflow-y: scroll;
+        }
+        #users div {
+            cursor: pointer;
+        }
+        .loaddata {
+            background:#aaa;
+            color:#000;
+            max-height: 350px;
+            overflow-y: scroll;
+        }
+    </style>
+</head>
+<body>
+    <form onsubmit="index.changeUrl(event)">
+        <input type="text" placeholder="Enter URL..." id="url">
+    </form>
+    <p>Odaberite korisnika: </p>
+    <div id="users">
+
+    </div>
+    Povijest: 
+    <div id="history" class="loaddata">
+
+    </div>
+    Knjizne oznake:
+    <div id="bookmarks" class="loaddata">
+
+    </div>
+    Prosirenja:
+    <div id="extensions" class="loaddata">
+
+    </div>
+    <a href="javascript:void(0)" onclick="index.historyNav(0)">Back</a>
+    <a href="javascript:void(0)" onclick="index.historyNav(1)">Forward</a>
+    <script src="static/js/index.js"></script>
+    <script src="static/lib/astiloader/astiloader.js"></script>
+    <script src="static/lib/astimodaler/astimodaler.js"></script>
+    <script src="static/lib/astinotifier/astinotifier.js"></script>
+    <script src="static/lib/chart/chart.min.js"></script>
+    <script type="text/javascript">
+        index.addrInit();
+    </script>
+</body>
+</html>
