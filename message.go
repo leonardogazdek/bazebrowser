@@ -2,155 +2,256 @@ package main
 
 import (
 	"encoding/json"
-	"io/ioutil"
-	"os"
-	"os/user"
-	"path/filepath"
-	"sort"
-	"strconv"
+	"fmt"
+	"log"
 
-	"github.com/asticode/go-astichartjs"
+	"database/sql"
+
 	"github.com/asticode/go-astilectron"
 	bootstrap "github.com/asticode/go-astilectron-bootstrap"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 // handleMessages handles messages
 func handleMessages(_ *astilectron.Window, m bootstrap.MessageIn) (payload interface{}, err error) {
 	switch m.Name {
-	case "explore":
-		// Unmarshal payload
-		var path string
-		if len(m.Payload) > 0 {
+	case "changeUrl":
+		{
+			fmt.Println("changing url from go")
 			// Unmarshal payload
-			if err = json.Unmarshal(m.Payload, &path); err != nil {
-				payload = err.Error()
-				return
-			}
-		}
-
-		// Explore
-		if payload, err = explore(path); err != nil {
-			payload = err.Error()
-			return
-		}
-	}
-	return
-}
-
-// Exploration represents the results of an exploration
-type Exploration struct {
-	Dirs       []Dir              `json:"dirs"`
-	Files      *astichartjs.Chart `json:"files,omitempty"`
-	FilesCount int                `json:"files_count"`
-	FilesSize  string             `json:"files_size"`
-	Path       string             `json:"path"`
-}
-
-// PayloadDir represents a dir payload
-type Dir struct {
-	Name string `json:"name"`
-	Path string `json:"path"`
-}
-
-// explore explores a path.
-// If path is empty, it explores the user's home directory
-func explore(path string) (e Exploration, err error) {
-	// If no path is provided, use the user's home dir
-	if len(path) == 0 {
-		var u *user.User
-		if u, err = user.Current(); err != nil {
-			return
-		}
-		path = u.HomeDir
-	}
-
-	// Read dir
-	var files []os.FileInfo
-	if files, err = ioutil.ReadDir(path); err != nil {
-		return
-	}
-
-	// Init exploration
-	e = Exploration{
-		Dirs: []Dir{},
-		Path: path,
-	}
-
-	// Add previous dir
-	if filepath.Dir(path) != path {
-		e.Dirs = append(e.Dirs, Dir{
-			Name: "..",
-			Path: filepath.Dir(path),
-		})
-	}
-
-	// Loop through files
-	var sizes []int
-	var sizesMap = make(map[int][]string)
-	var filesSize int64
-	for _, f := range files {
-		if f.IsDir() {
-			e.Dirs = append(e.Dirs, Dir{
-				Name: f.Name(),
-				Path: filepath.Join(path, f.Name()),
-			})
-		} else {
-			var s = int(f.Size())
-			sizes = append(sizes, s)
-			sizesMap[s] = append(sizesMap[s], f.Name())
-			e.FilesCount++
-			filesSize += f.Size()
-		}
-	}
-
-	// Prepare files size
-	if filesSize < 1e3 {
-		e.FilesSize = strconv.Itoa(int(filesSize)) + "b"
-	} else if filesSize < 1e6 {
-		e.FilesSize = strconv.FormatFloat(float64(filesSize)/float64(1024), 'f', 0, 64) + "kb"
-	} else if filesSize < 1e9 {
-		e.FilesSize = strconv.FormatFloat(float64(filesSize)/float64(1024*1024), 'f', 0, 64) + "Mb"
-	} else {
-		e.FilesSize = strconv.FormatFloat(float64(filesSize)/float64(1024*1024*1024), 'f', 0, 64) + "Gb"
-	}
-
-	// Prepare files chart
-	sort.Ints(sizes)
-	if len(sizes) > 0 {
-		e.Files = &astichartjs.Chart{
-			Data: &astichartjs.Data{Datasets: []astichartjs.Dataset{{
-				BackgroundColor: []string{
-					astichartjs.ChartBackgroundColorYellow,
-					astichartjs.ChartBackgroundColorGreen,
-					astichartjs.ChartBackgroundColorRed,
-					astichartjs.ChartBackgroundColorBlue,
-					astichartjs.ChartBackgroundColorPurple,
-				},
-				BorderColor: []string{
-					astichartjs.ChartBorderColorYellow,
-					astichartjs.ChartBorderColorGreen,
-					astichartjs.ChartBorderColorRed,
-					astichartjs.ChartBorderColorBlue,
-					astichartjs.ChartBorderColorPurple,
-				},
-			}}},
-			Type: astichartjs.ChartTypePie,
-		}
-		var sizeOther int
-		for i := len(sizes) - 1; i >= 0; i-- {
-			for _, l := range sizesMap[sizes[i]] {
-				if len(e.Files.Data.Labels) < 4 {
-					e.Files.Data.Datasets[0].Data = append(e.Files.Data.Datasets[0].Data, sizes[i])
-					e.Files.Data.Labels = append(e.Files.Data.Labels, l)
-				} else {
-					sizeOther += sizes[i]
+			var path string
+			if len(m.Payload) > 0 {
+				// Unmarshal payload
+				if err = json.Unmarshal(m.Payload, &path); err != nil {
+					payload = err.Error()
+					return
 				}
 			}
+
+			// Explore
+			w.ExecuteJavaScript("window.location.href='" + path + "'")
+			payload = path
+			break
 		}
-		if sizeOther > 0 {
-			e.Files.Data.Datasets[0].Data = append(e.Files.Data.Datasets[0].Data, sizeOther)
-			e.Files.Data.Labels = append(e.Files.Data.Labels, "other")
+	case "historyNav":
+		{
+			// Unmarshal payload
+			var action string
+			if len(m.Payload) > 0 {
+				// Unmarshal payload
+				if err = json.Unmarshal(m.Payload, &action); err != nil {
+					payload = err.Error()
+					return
+				}
+			}
+
+			// Explore
+			if action == "back" {
+				w.ExecuteJavaScript("window.history.back()")
+			} else {
+				w.ExecuteJavaScript("window.history.forward()")
+			}
+			payload = action
+			break
 		}
+	case "historyPush":
+		{
+			// Unmarshal payload
+			var action string
+			if len(m.Payload) > 0 {
+				// Unmarshal payload
+				if err = json.Unmarshal(m.Payload, &action); err != nil {
+					payload = err.Error()
+					return
+				}
+			}
+
+			// Explore
+			fmt.Println("add to history " + action)
+			payload = action
+			break
+		}
+	case "getUsers":
+		{
+
+			db, err := sql.Open("sqlite3", "./resources/app/main.db")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer db.Close()
+
+			rows, err := db.Query("select * from korisnici")
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			defer rows.Close()
+			arr := []Korisnik{}
+			for rows.Next() {
+				var id int
+				var korisnickoime string
+				var datum string
+				err = rows.Scan(&id, &korisnickoime, &datum)
+				if err != nil {
+					log.Fatal(err)
+				}
+				elem := Korisnik{
+					Id:            id,
+					Korisnickoime: korisnickoime,
+					Datum:         datum,
+				}
+				arr = append(arr, elem)
+
+			}
+			err = rows.Err()
+			if err != nil {
+				log.Fatal(err)
+			}
+			payload = arr
+
+			break
+		}
+	case "fetchUserData":
+		{
+			var action string
+			if len(m.Payload) > 0 {
+				// Unmarshal payload
+				if err = json.Unmarshal(m.Payload, &action); err != nil {
+					payload = err.Error()
+					return
+				}
+			}
+
+			db, err := sql.Open("sqlite3", "./resources/app/main.db")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer db.Close()
+
+			rows, err := db.Query("select id, url, vremenskistambilj from povijest where korisnici_id = " + action + "")
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			rowsBook, err := db.Query("select p.id,p.ime,p.url,k.ime from knjizneoznake p left join kategorije k on p.kategorije_id = k.id where korisnici_id = " + action + "")
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			rowsExt, err := db.Query("select p.id, p.ime, p.opis from prosirenja p join korisnici_prosirenja_veza v on p.id = v.prosirenja_id join korisnici k on k.id = v.korisnici_id WHERE v.korisnici_id = " + action + "")
+			if err != nil {
+				log.Fatal(err)
+			}
+			defer rows.Close()
+			defer rowsBook.Close()
+			defer rowsExt.Close()
+
+			povijestData := []PovijestData{}
+			for rows.Next() {
+				var id int
+				var url string
+				var vremenskistambilj string
+				err = rows.Scan(&id, &url, &vremenskistambilj)
+				if err != nil {
+					log.Fatal(err)
+				}
+				povijestData = append(povijestData, PovijestData{
+					Id:                id,
+					Url:               url,
+					Vremenskistambilj: vremenskistambilj,
+				})
+
+			}
+
+			knjizneoznakeData := []KnjiznaOznakaData{}
+			for rowsBook.Next() {
+				var id int
+				var ime string
+				var url string
+				var kategorija string
+				err = rowsBook.Scan(&id, &ime, &url, &kategorija)
+				if err != nil {
+					log.Fatal(err)
+				}
+				knjizneoznakeData = append(knjizneoznakeData, KnjiznaOznakaData{
+					Id:         id,
+					Ime:        ime,
+					Url:        url,
+					Kategorija: kategorija,
+				})
+
+			}
+
+			prosirenjaData := []ProsirenjeData{}
+			for rowsExt.Next() {
+				var id int
+				var ime string
+				var opis string
+				err = rowsExt.Scan(&id, &ime, &opis)
+				if err != nil {
+					log.Fatal(err)
+				}
+				prosirenjaData = append(prosirenjaData, ProsirenjeData{
+					Id:   id,
+					Ime:  ime,
+					Opis: opis,
+				})
+
+			}
+
+			err = rows.Err()
+			if err != nil {
+				log.Fatal(err)
+			}
+			err = rowsBook.Err()
+			if err != nil {
+				log.Fatal(err)
+			}
+			err = rowsExt.Err()
+			if err != nil {
+				log.Fatal(err)
+			}
+			arr := KorisnikData{
+				Povijest:      povijestData,
+				KnjizneOznake: knjizneoznakeData,
+				Prosirenja:    prosirenjaData,
+			}
+			payload = arr
+
+			break
+		}
+
 	}
 	return
+}
+
+type KorisnikData struct {
+	Povijest      []PovijestData      `json:"povijestdata"`
+	KnjizneOznake []KnjiznaOznakaData `json:"knjizneoznakedata"`
+	Prosirenja    []ProsirenjeData    `json:"prosirenjadata"`
+}
+
+type PovijestData struct {
+	Id                int    `json:"id"`
+	Url               string `json:"url"`
+	Vremenskistambilj string `json:"vremenskistambilj"`
+}
+
+type KnjiznaOznakaData struct {
+	Id         int    `json:"id"`
+	Ime        string `json:"ime"`
+	Url        string `json:"url"`
+	Kategorija string `json:"kategorija"`
+}
+
+type ProsirenjeData struct {
+	Id   int    `json:"id"`
+	Ime  string `json:"ime"`
+	Opis string `json:"opis"`
+}
+
+type Korisnik struct {
+	Id            int    `json:"id"`
+	Korisnickoime string `json:"korisnickoime"`
+	Datum         string `json:"datum"`
 }

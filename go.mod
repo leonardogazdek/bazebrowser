@@ -7,4 +7,5 @@ require (
 	github.com/asticode/go-astikit v0.6.0
 	github.com/asticode/go-astilectron v0.20.0
 	github.com/asticode/go-astilectron-bootstrap v0.4.4
+	github.com/mattn/go-sqlite3 v1.14.6
 )
