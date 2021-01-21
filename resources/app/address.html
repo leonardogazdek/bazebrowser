@@ -28,6 +28,9 @@
             max-height: 350px;
             overflow-y: scroll;
         }
+        #CRUD form input {
+            display: block;
+        }
     </style>
 </head>
 <body>
@@ -42,12 +45,58 @@
     <div id="history" class="loaddata">
 
     </div>
-    Knjizne oznake:
-    <div id="bookmarks" class="loaddata">
+    
 
-    </div>
-    Prosirenja:
-    <div id="extensions" class="loaddata">
+    <div id="CRUD">
+        <a href="javascript:void(0)" data-open=".bookmarks">Knjizne oznake</a>
+        <div>
+            <div id="bookmarks" class="loaddata bookmarks">
+            </div>
+            <form id="form_bookmarks" class="bookmarks" onsubmit="return false">
+                <input name="id" type="hidden" value="0">
+                <input name="ime">
+                <input name="url">
+                <input name="kategorije_id">
+                <input type="submit" value="Kreiraj" onclick="index.createBookmark('insert')">
+                <input type="submit" value="Azuriraj" onclick="index.createBookmark('update')">
+            </form>
+        </div>
+        <div>
+            <div id="extensions" class="loaddata">
+
+            </div>
+            <form id="form_extensions" class="extensions" onsubmit="return false">
+                <input name="id" type="hidden" value="0">
+                <input name="ime">
+                <input name="opis">
+                <input type="submit" value="Kreiraj" onclick="index.createExtension('insert')">
+                <input type="submit" value="Azuriraj" onclick="index.createExtension('update')">
+            </form>
+        </div>
+        <div>
+            <div id="opentabs" class="loaddata">
+
+            </div>
+            <form id="form_opentabs" class="opentabs" onsubmit="return false">
+                <input name="id" type="hidden" value="0">
+                <input name="url">
+                <input type="submit" value="Kreiraj" onclick="index.createTab('insert')">
+                <input type="submit" value="Azuriraj" onclick="index.createTab('update')">
+            </form>
+        </div>
+
+        <div>
+            <div id="settings" class="loaddata">
+
+            </div>
+            <form id="form_settings" class="settings" onsubmit="return false">
+                <input name="id" type="hidden" value="0">
+                <input name="ime">
+                <input name="vrijednost">
+                <input type="submit" value="Kreiraj" onclick="index.createSettings('insert')">
+                <input type="submit" value="Azuriraj" onclick="index.createSettings('update')">
+            </form>
+        </div>
 
     </div>
     <a href="javascript:void(0)" onclick="index.historyNav(0)">Back</a>
